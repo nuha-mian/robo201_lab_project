@@ -1,5 +1,8 @@
 
+import numpy as np
+import matplotlib.pyplot as plt
 from queue import PriorityQueue
+import time
 
 
 def is_valid_node(node:tuple,grid): # determine if node is inside grid
@@ -29,7 +32,6 @@ def neighbors(node:tuple): # determine the neighboring grid cells of node
 
 
 def dijkstra(start_node,goal_node,grid): # determine the shortest path on grid
-
 
         open_list = PriorityQueue() # sort & store nodes based on smallest cost
         open_list.put((0,start_node)) # set 0 as cost of start node
@@ -68,7 +70,66 @@ def dijkstra(start_node,goal_node,grid): # determine the shortest path on grid
         path.append(start_node) # add the start node to the path
         path.reverse() # reverse the path to undo the backtracking (begin at start node & travel forwards to end at goal node)
 
+        total_exapnded_nodes = len(closed_list) # determine number of nodes explored using algorithm
+    
+        return total_exapnded_nodes, path , cost_from_start_node[goal_node] # return the number of expanded nodes, path, & final path cost
 
+    
+def plot_grid(grid, start_node, goal_node, path): # visualize grid, start + goal nodes, & final path
+
+    rows, cols = grid.shape # set rows = height & cols = width of grid
+
+    fig, ax = plt.subplots(figsize=(10, 10)) # create 10x10 grid figure
+
+    ax.imshow(grid, cmap="gray_r", origin="lower") # display grid with features ("gray_r" = white for free nodes & black for nodes with obstacles + "lower" = place (0,0) in bottom left)
+
+    # format grid 
+    ax.set_xticks(np.arange(-0.5, cols, 1))
+    ax.set_yticks(np.arange(-0.5, rows, 1))
+
+    ax.grid(which="both", color="lightgray", linewidth=0.5)
+
+    # set x (columns) & y (rows) coordinates for plotting
+    x_val = [c for (r, c) in path]
+    y_val = [r for (r, c) in path]
+
+    # plot start + goal nodes
+    ax.scatter(start_node[1], start_node[0], marker="o", color="blue", label="start")
+    ax.scatter(goal_node[1], goal_node[0], marker="o", color="yellow", label="goal")
+
+    # plot path
+    ax.plot(x_val, y_val, color="green", linewidth=2, label="path")
+
+    # format data
+    ax.set_title(" Dijkstra Algorithm")
+    ax.set_xlabel("X")
+    ax.set_ylabel("Y ")
+    ax.legend()
+
+    # display plotted data
+    plt.show()
+
+
+def inflate_grid(grid, inflation_cells): # inflate obstacles to ensure that the robot is always a safe enough distance away from them = prevents possible damage 
+   
+    rows, cols = grid.shape # set rows = height & cols = width of grid
+    inflated = grid.copy() # make copy of grid to modify without overwriting original grid
+
+    obstacle_indices = np.argwhere(grid == 1) # determine all obstacles in path (values that = 1 are obstacles / values that = 0 are free)
+
+    for (r, c) in obstacle_indices: # for every obstacle cell with r = rows & c = columns
+        # create inflated square around obstacle cell
+        for dr in range(-inflation_cells, inflation_cells + 1): # dr = change in row = x
+            for dc in range(-inflation_cells, inflation_cells + 1): # dc = change in column = y
+
+                if dr*dr + dc*dc <= inflation_cells*inflation_cells: # use equation of circle to determine if (dr,dc) is inside radius of circle = used to make rounded inflated obstacles rather than square
+                    # calculate coordinates of inflated cell
+                    rr = r + dr
+                    cc = c + dc
+
+                    if 0 <= rr < rows and 0 <= cc < cols: # for cell within grid boundaries
+                        inflated[rr, cc] = 1 # set as inflated obstacle
+    return inflated # return grid with inflated obstacles
     
 
     
