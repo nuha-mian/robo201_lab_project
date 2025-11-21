@@ -1,8 +1,36 @@
-
+import yaml
+from PIL import Image
 import numpy as np
 import matplotlib.pyplot as plt
 from queue import PriorityQueue
 import time
+
+
+def yaml_to_occupancy_grid(yaml_file): # convert map image (yaml file) to 2D occupancy grid
+
+    with open(yaml_file, 'r') as f: # open yaml file
+        map_metadata = yaml.safe_load(f) # load data into dictionary 
+    
+    # extract map path & occupied + free threshold values from yaml file
+    image_path = map_metadata["image"]
+    occ_thresh = map_metadata["occupied_thresh"]
+    free_thresh = map_metadata["free_thresh"]
+
+    # open map image 
+    img = Image.open(image_path).convert('L')  # convert map image to greyscale ('L')
+    img = np.array(img) # convert greyscale image into array for later calculations
+
+    normalized = img / 255.0 # set pixel value range
+
+    grid = np.zeros_like(normalized, dtype=int) # create a grid filled with 0s (same size as map image)
+
+
+    grid[normalized < occ_thresh] = 1  # set cells with values less than the occupied threshold values as obstacles = obstacles have values of 1
+    grid[normalized > free_thresh] = 0  # set cells with values greater than the free threshold values as free = free have values of 1
+    mask_unknown = (normalized <= occ_thresh) & (normalized >= free_thresh)  # create reprentation for cells with pixel values that are in between the occupied & free threshold values
+    grid[mask_unknown] = -1 # set cells with values in between the occupied & free threshold values as unknown = unknown have values of -1                
+
+    return grid # return 2D occupancy grid
 
 
 def is_valid_node(node:tuple,grid): # determine if node is inside grid
@@ -132,4 +160,31 @@ def inflate_grid(grid, inflation_cells): # inflate obstacles to ensure that the 
     return inflated # return grid with inflated obstacles
     
 
+if __name__ == '__main__':
     
+    grid = yaml_to_occupancy_grid("my_robot_map_real.yaml") # convert map image from yaml file to 2D occupancy grid
+    resolution = 0.05 # resolution of grid in centimeters
+    robot_radius = 0.105 # radius of robot in meters
+    inflation_cells = int(robot_radius // resolution) -1 # calculate inflation based on resolution & radius               
+
+    inflated_grid = inflate_grid(grid, inflation_cells) # create new grid with inflated objects
+    
+    # set goal & start node coordinates
+    goal_node = (25, 17)
+    start_node = (9,17)
+    
+    start_time = time.time() # record start time of algorithm
+    total_exapnded_nodes , path, cost = dijkstra(start_node, goal_node, inflated_grid) # return total expanded nodes, path, & cost of path
+
+
+    end_time = time.time() # record end time of algorithm
+    total_time = (end_time - start_time) *100 # calculate total execution time of algorithm
+    
+    # display data
+    print("shortest path:",path)
+    print(f"run time: {total_time} ms") 
+    print("path cost:", len(path))
+    print("total expanded nodes", total_exapnded_nodes)
+
+    # plot grid
+    plot_grid(inflated_grid,start_node,goal_node,path)
