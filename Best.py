@@ -61,6 +61,7 @@ def neighbors(node:tuple): # determine the neighboring grid cells of node
 
 
 
+
     
 def plot_grid(grid, start_node, goal_node, path): # visualize grid, start + goal nodes, & final path
 
