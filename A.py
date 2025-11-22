@@ -67,6 +67,49 @@ def heuristic(node1,node2): # determine manhattan distance (chosen heuristic)
     return manhattan_distance # return manhattan distance
 
 
+def A(start_node,goal_node,grid): # determine the shortest path on grid
+        
+        open_list = PriorityQueue() # sort & store nodes based on smallest cost
+        open_list.put((0,start_node)) # set 0 as cost of start node
+
+        closed_list = set() # store nodes that have already been explored to prevent infinite loop
+
+        parents = {start_node:None} # stores the parent of each visited node
+
+        cost_from_start_node = {start_node:0} # stores the optimal cost 
+
+        while not open_list.empty(): # run algorithm until goal is reached
+
+            (current_cost,current_node) = open_list.get() # determine the smallest cost at current point
+
+            if current_node == goal_node: # stop program if goal is already reached
+                break
+            if current_node in closed_list: # skip node if already explored before
+                continue 
+            else: # set the node as explored 
+                closed_list.add(current_node)
+
+            for next_node in neighbors(current_node): # explore neighbors
+                if is_valid_node(next_node,grid) and next_node not in closed_list: # check if neighbor is free & insde grid
+                    new_cost = current_cost+1 # increase cost
+                    if next_node not in cost_from_start_node or new_cost < cost_from_start_node[next_node]: # check if neighbor has been explored or if cheaper cost path exists 
+                        cost_from_start_node[next_node] = new_cost # update neighbor's cost 
+                        parents[next_node] = current_node # update current node
+                        priority_cost = new_cost+heuristic(next_node,goal_node) # calculate the actual value + heuristic value 
+                        open_list.put((priority_cost,next_node)) # adds the next node to the priority queue based on the priority cost
+
+        path = [] # list to store shortest path found
+        current_node = goal_node # set current node to goal node so that path is found by backtracking (begin at goal node & travel backwards to end at start node)
+        while current_node != start_node: # run path search (via backtracking) until start node is reached
+            path.append(current_node) # add every node to the path
+            current_node = parents.get(current_node) # use parent of current node to move backwards along path
+        path.append(start_node) # add the start node to the path
+        path.reverse() # reverse the path to undo the backtracking (begin at start node & travel forwards to end at goal node)
+
+        total_exapnded_nodes = len(closed_list) # determine number of nodes explored using algorithm
+    
+        return total_exapnded_nodes, path , cost_from_start_node[goal_node] # return the number of expanded nodes, path, & final path cost
+
 
 def plot_grid(grid, start_node, goal_node, path): # visualize grid, start + goal nodes, & final path
 
@@ -94,13 +137,14 @@ def plot_grid(grid, start_node, goal_node, path): # visualize grid, start + goal
     ax.plot(x_val, y_val, color="green", linewidth=2, label="path")
 
     # format data
-    ax.set_title(" A* Algorithm)
+    ax.set_title(" A* Algorithm")
     ax.set_xlabel("X")
     ax.set_ylabel("Y")
     ax.legend()
 
     # display plotted data
     plt.show()
+
 
 def inflate_grid(grid, inflation_cells): # inflate obstacles to ensure that the robot is always a safe enough distance away from them = prevents possible damage 
    
@@ -138,7 +182,7 @@ if __name__ == '__main__':
     start_node = (9,17)
     
     start_time = time.time() # record start time of algorithm
-    total_exapnded_nodes , path, cost = BFS(start_node, goal_node, inflated_grid) # return total expanded nodes, path, & cost of path
+    total_exapnded_nodes , path, cost = A(start_node, goal_node, inflated_grid) # return total expanded nodes, path, & cost of path
 
 
     end_time = time.time() # record end time of algorithm
